@@ -1,4 +1,4 @@
-package com.nni.gamevate.gamedata.dal;
+package com.nni.gamevate.network.gamedata.dal;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -7,8 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.nni.gamevate.domain.GameCharacter;
-import com.nni.gamevate.gamedata.GameQueryConfig;
+import com.nni.gamevate.network.gamedata.GameCharacter;
 
 public class GameCharacterDAL {
 
@@ -27,9 +26,7 @@ public class GameCharacterDAL {
 			e.printStackTrace();
 		} finally {
 			try {
-				//st.close();
 				rs.close();
-				//st = null;
 				rs = null;
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -65,12 +62,50 @@ public class GameCharacterDAL {
 				e.printStackTrace();
 			}
 		}
-		
-		
-		
+			
 		return characters;
 	}
 	
+	public boolean updateCharacter(Connection conn, GameCharacter gc) throws SQLException {
+		if(conn == null){
+			throw new NullPointerException("The Databse Connection is null!");
+		}
+		
+		PreparedStatement st = null;
+		
+		try {
+			conn.setAutoCommit(false);
+			st = conn.prepareStatement(GameQueryConfig.UPDATE_CHARACTER);
+			
+			st.setInt(1, gc.getExperience());
+			st.setInt(2, gc.getGold());
+			st.setInt(3, gc.getHealth());
+			st.setInt(4, gc.getCharacterID());
+			st.executeUpdate();
+			conn.commit();
+			
+		} catch(SQLException e){
+			e.printStackTrace();
+			if (conn != null) {
+	            try {
+	                System.err.print("Transaction is being rolled back");
+	                conn.rollback();
+	            } catch(SQLException excep) {
+	                e.printStackTrace();
+	            }
+	        }
+			return false;
+		} finally {
+			if (st != null) {
+	            st.close();
+	        }
+			
+	        conn.setAutoCommit(true);
+		}
+		
+		return true;
+		
+	}
 	
 	private ResultSet executeIDQuery(Connection conn, String query, int ID){
 		if(conn == null){

@@ -1,27 +1,31 @@
 package com.nni.gamevate;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
-import com.nni.gamevate.domain.GameCharacter;
-import com.nni.gamevate.gamedata.DatabaseConnection;
-import com.nni.gamevate.gamedata.ObjectRegistration;
-import com.nni.gamevate.gamedata.dal.GameCharacterDAL;
+import com.nni.gamevate.network.ObjectRegistration;
+import com.nni.gamevate.network.gamedata.GameCharacter;
+import com.nni.gamevate.network.gamedata.MatchResult;
+import com.nni.gamevate.network.gamedata.dal.DatabaseConnection;
+import com.nni.gamevate.network.gamedata.dal.GameCharacterDAL;
+import com.nni.gamevate.network.gamedata.services.MatchService;
 
 public class PerlerWizardServer {
 
 	private Server server;
 	private DatabaseConnection dbConnection;
-	
 	private GameCharacterDAL gameCharacterDAL;
+	private MatchService matchService;
 
 	public PerlerWizardServer() {
 		dbConnection = new DatabaseConnection();
 		gameCharacterDAL = new GameCharacterDAL();
+		matchService = new MatchService();
 	}
 
 	public void start() {
@@ -38,7 +42,7 @@ public class PerlerWizardServer {
 			public void received(Connection connection, Object object) {
 				if( object instanceof GameCharacter){
 					GameCharacter character = (GameCharacter) object;
-					System.out.println("Character Received : " + character.getCharacterID());
+					System.out.println("Character Received : " + character);
 					
 					GameCharacter responseCharacter = 
 							gameCharacterDAL.getCharacter(dbConnection.getConnection(), character.getCharacterID());
@@ -47,6 +51,23 @@ public class PerlerWizardServer {
 					System.out.println("Character Sent : \n" + responseCharacter);
 					
 				}
+				
+				if(object instanceof MatchResult){
+					MatchResult matchResult = (MatchResult) object;
+					System.out.println("Match Result Recieved : " + matchResult );
+					boolean updated = false;
+					
+					try {
+						 updated = matchService.cumulate(matchResult, dbConnection.getConnection());
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+					
+					if(updated){
+						connection.sendTCP(gameCharacterDAL.getCharacter(dbConnection.getConnection(), matchResult.character_id));
+						System.out.println("Updated Character Sent");
+					}
+				}	
 			}
 		});
 		
@@ -57,10 +78,7 @@ public class PerlerWizardServer {
 		}
 		
 		server.start();
-		
-		
 		dbConnection.start();
-		
 	}
 	
 	public void stop(){

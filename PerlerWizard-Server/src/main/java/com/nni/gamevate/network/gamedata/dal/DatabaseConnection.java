@@ -1,4 +1,4 @@
-package com.nni.gamevate.gamedata;
+package com.nni.gamevate.network.gamedata.dal;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

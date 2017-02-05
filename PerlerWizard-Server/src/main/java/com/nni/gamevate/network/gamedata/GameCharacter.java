@@ -1,4 +1,4 @@
-package com.nni.gamevate.domain;
+package com.nni.gamevate.network.gamedata;
 
 public class GameCharacter {
 
